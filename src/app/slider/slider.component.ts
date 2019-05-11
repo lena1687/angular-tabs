@@ -1,5 +1,5 @@
-import { Component, NgModule, Input } from '@angular/core';
-import { CarouselModule } from 'ngx-owl-carousel-o';
+import {Component, NgModule, Input, AfterViewInit, ViewChild, Renderer2} from '@angular/core';
+import { CarouselModule, CarouselComponent } from 'ngx-owl-carousel-o';
 
 @NgModule({
   imports: [ CarouselModule ],
@@ -11,8 +11,11 @@ import { CarouselModule } from 'ngx-owl-carousel-o';
   templateUrl: './slider.component.html',
   styleUrls: ['./slider.component.css']
 })
-export class SliderComponent  {
+export class SliderComponent implements AfterViewInit  {
+  @ViewChild(CarouselComponent) owl = CarouselComponent;
   @Input() slides: [{src: string, alt: string, title: string, id: string}];
+
+  started = false;
 
   customOptions: any = {
     autoplay: true,
@@ -33,6 +36,26 @@ export class SliderComponent  {
       }
     },
     nav: true
-  }
+  };
 
+  constructor(private renderer: Renderer2) {}
+
+  ngAfterViewInit(): void {
+    // Hack for case when initial width of carousel equals to 0 (hidden carousel).
+    setInterval(() => {
+      const currentWidth = this.owl['el'].nativeElement.querySelector(
+        '.owl-carousel'
+      ).clientWidth;
+      // Emulate resize event to trigger reinitialize sliders.
+      const event = document.createEvent('HTMLEvents');
+      event.initEvent('resize', true, false);
+      document.dispatchEvent(event);
+
+      if (currentWidth > 0 && !this.started) {
+        this.owl['next']();
+        this.started = true;
+      }
+      if (!currentWidth) { this.started = false; }
+    }, 100);
+  }
 }
